@@ -1,0 +1,38 @@
+import requests
+import csv
+from bs4 import BeautifulSoup
+
+date = str(input("date (mm/dd/yy) : "))
+
+url = requests.get(f"https://www.yallakora.com/match-center/مركز-المباريات?date={date}#days")
+match_datils = []
+src = url.content
+soup = BeautifulSoup(src,"lxml")
+champion_ships = soup.find_all("div",{"class":"matchCard"})
+def get_info(champion_ships):
+  champion_title = champion_ships.contents[1].find("h2").text.strip()
+  matches = champion_ships.contents[3].find_all("li")
+  num_of_matches = len(matches)
+  for match in range(num_of_matches):
+    team_1 =matches[match].find("div",{"class":"teams teamA"}).text.strip()
+    team_2 = matches[match].find("div",{"class":"teams teamB"}).text.strip()
+    r = matches[match].find('div',{'class':'MResult'}).find_all("span",{"class":'score'})
+    result =f"{r[0].text} : {r[1].text}"
+    time = matches[match].find('div',{'class':'MResult'}).find("span",{"class":"time"}).text
+    hours =int(time[0:2])
+    minutes =int(time[3:5])
+    if int(hours) == 12 and minutes == 0:
+      match_time =f"{hours}:{minutes} am"
+    elif int(hours) < 12 and minutes >= 0:
+      match_time = f"{hours}:{minutes} am"
+    else:
+      match_time = f"{hours-12}:{minutes} pm"
+    match_datils.append({"البطولة":champion_title,"الفريق الاول":team_1,"الفريق الثانى":team_2,"النتيجة":result,"الوقت":match_time})
+for i in range(len(champion_ships)):
+  get_info (champion_ships[i])
+keys = match_datils[0].keys()
+name = date.replace("/","_")
+with open (f"matches_datials_{name}.csv","w") as file :
+  d = csv.DictWriter(file,keys)
+  d.writeheader()
+  d.writerows(match_datils)
