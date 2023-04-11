@@ -1,0 +1,29 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+from itertools import zip_longest
+all_page = []
+links =[]
+all_titles = []
+imgs = []
+for i in range (1,28):
+  all_page.append(f"https://w1.anime4up.tv/anime-list-3/page/{i}/")
+
+def get_info(params):
+  for num in range(len(params)):
+    print(f"---{num+1}---")
+    r = requests.get(all_page[num])
+    soup = BeautifulSoup(r.content,"lxml")
+    titles = soup.find_all("div",{"class":"anime-card-title"})
+    img = soup.find_all("img",{"class":"img-responsive"})
+    for i in range(len(titles)):
+      all_titles.append(titles[i].find("a").text)
+      links . append (titles[i].find("a").attrs['href'])
+      imgs.append(img[i].attrs["src"])
+get_info(all_page)
+all_files =[all_titles,links,imgs]
+exported = zip_longest(*all_files)
+with open ("animes.csv","w") as file :
+  wr = csv.writer (file)
+  wr.writerow (["name","link","imgs"])
+  wr.writerows(exported)
