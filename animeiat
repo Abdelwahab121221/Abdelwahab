@@ -1,0 +1,29 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+from itertools import zip_longest
+all_page = []
+links =[]
+all_titles = []
+morf = []
+m = []
+for i in range (1,105):
+  print(f"---{i}---")
+  r=requests.get(f"https://www.animeiat.tv/anime-list?page={i}")
+  soup = BeautifulSoup(r.content,"lxml")
+  titles = soup.find_all("h2",{"class":"anime_name ma-0 pa-0 px-1 pb-2 ltr"})
+  linkd = soup.find_all("div",{"class":"anime-title text-center"})
+  m_or_f = soup . find_all("span",{"class":"float-left v-chip theme--dark v-size--small success"})
+  n = soup . find_all("span",{"class":"float-right v-chip theme--dark v-size--small error"})
+  for i in range(len(titles)):
+    all_titles.append(titles[i].text)
+    links.append("https://www.animeiat.tv"+linkd[i].find("a").attrs['href'])
+    morf.append(m_or_f[i].find("span",{"class":"v-chip__content"}).text)
+    m.append(n[i].find("span",{"class":"v-chip__content"}).text)
+all_files =[all_titles,links,morf,m]
+exported = zip_longest(*all_files)
+with open ("animeiat.csv","w") as file :
+  wr = csv.writer (file)
+  wr.writerow (["الاسم","الموقع","مسلسل , فيلم","يعرض , مكتمل"])
+  wr.writerows(exported)
+ 
