@@ -1,29 +1,48 @@
 import requests
-from bs4 import BeautifulSoup
 import csv
-from itertools import zip_longest
-all_page = []
-links =[]
-all_titles = []
-morf = []
-m = []
-for i in range (1,105):
-  print(f"---{i}---")
-  r=requests.get(f"https://www.animeiat.tv/anime-list?page={i}")
-  soup = BeautifulSoup(r.content,"lxml")
-  titles = soup.find_all("h2",{"class":"anime_name ma-0 pa-0 px-1 pb-2 ltr"})
-  linkd = soup.find_all("div",{"class":"anime-title text-center"})
-  m_or_f = soup . find_all("span",{"class":"float-left v-chip theme--dark v-size--small success"})
-  n = soup . find_all("span",{"class":"float-right v-chip theme--dark v-size--small error"})
-  for i in range(len(titles)):
-    all_titles.append(titles[i].text)
-    links.append("https://www.animeiat.tv"+linkd[i].find("a").attrs['href'])
-    morf.append(m_or_f[i].find("span",{"class":"v-chip__content"}).text)
-    m.append(n[i].find("span",{"class":"v-chip__content"}).text)
-all_files =[all_titles,links,morf,m]
-exported = zip_longest(*all_files)
-with open ("animeiat.csv","w") as file :
-  wr = csv.writer (file)
-  wr.writerow (["الاسم","الموقع","مسلسل , فيلم","يعرض , مكتمل"])
-  wr.writerows(exported)
- 
+from bs4 import BeautifulSoup
+import datetime
+
+now = datetime.datetime.now()
+
+date = now.strftime("%m/%d/%Y")
+
+url = requests.get(f"https://www.yallakora.com/match-center/مركز-المباريات?date={date}#days")
+match_datils = []
+src = url.content
+soup = BeautifulSoup(src,"lxml")
+champion_ships = soup.find_all("div",{"class":"matchCard"})
+def get_info(champion_ships):
+  champion_title = champion_ships.contents[1].find("h2").text.strip()
+  matches = champion_ships.contents[3].find_all("li")
+  num_of_matches = len(matches)
+  for match in range(num_of_matches):
+    team_1 =matches[match].find("div",{"class":"teams teamA"}).text.strip()
+    team_2 = matches[match].find("div",{"class":"teams teamB"}).text.strip()
+    r = matches[match].find('div',{'class':'MResult'}).find_all("span",{"class":'score'})
+    result =f"{r[0].text} : {r[1].text}"
+    time = matches[match].find('div',{'class':'MResult'}).find("span",{"class":"time"}).text
+    hours =int(time[0:2])
+    minutes =int(time[3:5])
+    if int(hours) == 12 and minutes == 0:
+      match_time =f"{hours}:{minutes} am"
+    elif int(hours) < 12 and minutes >= 0:
+      match_time = f"{hours}:{minutes} am"
+    else:
+      match_time = f"{hours-12}:{minutes} pm"
+    match_datils.append({"البطولة":champion_title,"الفريق الاول":team_1,"الفريق الثانى":team_2,"النتيجة":result,"الوقت":match_time})
+for i in range(len(champion_ships)):
+  get_info (champion_ships[i])
+keys = match_datils[0].keys()
+name = date.replace("/","_")
+with open (f"matches_datials_{name}.csv","w") as file :
+  d = csv.DictWriter(file,keys)
+  d.writeheader()
+  d.writerows(match_datils)
+bot ="6102853412:AAFEYKGvYYBbrlyxEoNnPr9_jtNp544hr8U"
+chat_id = "2099632642"
+timer = "60"
+def massage (msg):
+   file = {"document":open(f"{msg}","rb")}
+   r = requests.post(f"https://api.telegram.org/bot{bot}/sendDocument?chat_id={chat_id}$caption=the_file",files=file)
+massage (f"matches_datials_{name}.csv")
